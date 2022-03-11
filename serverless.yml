@@ -1,0 +1,117 @@
+service: b88bet
+
+frameworkVersion: '2'
+
+custom:
+  tableName: 'queue-${self:provider.stage}'
+
+provider:
+  name: aws
+  runtime: nodejs12.x
+  stage: dev
+  region: us-east-1
+  iamRoleStatements:
+    - Effect: Allow
+      Action:
+        - dynamodb:DescribeTable
+        - dynamodb:Query
+        - dynamodb:Scan
+        - dynamodb:GetItem
+        - dynamodb:PutItem
+        - dynamodb:UpdateItem
+        - dynamodb:DeleteItem
+      Resource:
+        - { "Fn::GetAtt": ["UserTable", "Arn" ] }
+  environment:
+    USER_TABLE: ${self:custom.tableName}
+
+
+functions:
+  hello:
+    handler: handler.hello
+    path: /hello
+  # user
+  adduser:
+    handler: user/adduser.handler
+    events:
+      - http:
+          path: user/add
+          method: post
+
+  login:
+    handler: user/login.handler
+    events:
+      - http:
+          path: user/login
+          method: post
+
+  update:
+    handler: user/update.handler
+    events:
+      - http:
+          path: user/update
+          method: post
+
+  getuser:
+    handler: user/getuser.handler
+    events:
+      - http:
+          path: user/get
+          method: post
+
+  recoveryrequest:
+    handler: user/recovery/request.handler
+    events:
+      - http:
+          path: user/recovery/request
+          method: post
+
+  recoveryreset:
+    handler: user/recovery/reset.handler
+    events:
+      - http:
+          path: user/recovery/reset
+          method: post
+
+  recoveryupdate:
+    handler: user/recovery/update.handler
+    events:
+      - http:
+          path: user/recovery/update
+          method: post
+#game
+
+  gamelaunch:
+    handler: game/launch.handler
+    events:
+      - http:
+          path: game/launch
+          method: post
+
+  gamejoin:
+    handler: game/join.handler
+    events:
+      - http:
+          path: game/join
+          method: post
+
+resources:
+  Resources:
+    UserTable:
+      Type: 'AWS::DynamoDB::Table'
+      Properties:
+        AttributeDefinitions:
+          -
+            AttributeName: key
+            AttributeType: S
+        KeySchema:
+          -
+            AttributeName: key
+            KeyType: HASH
+        ProvisionedThroughput:
+          ReadCapacityUnits: 1
+          WriteCapacityUnits: 1
+        TableName: ${self:custom.tableName}
+
+plugins:
+  - serverless-offline
